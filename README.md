@@ -64,21 +64,5 @@ JWT - Authentication tokens
 bcrypt - Password hashing
 Railway/AWS - Cloud deployment
 
-🏗️ Project Structure
-regle-de-trois-game/
-├── frontend/
-│   ├── src/
-│   │   ├── components/
-│   │   │   └── game/
-│   │   │       ├── GameBoard.tsx      # Main game component
-│   │   │       └── GameBoard.css      # Game styling
-│   │   ├── App.tsx                    # Root component
-│   │   └── main.tsx                   # Entry point
-│   ├── package.json
-│   └── vite.config.ts
-├── backend/
-│   ├── server.js                      # Express server
-│   ├── .env                          # Environment variables
-│   └── package.json
-├── README.md
-└── LICENSE                           # MIT License
+
+
