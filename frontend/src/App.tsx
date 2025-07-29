@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import GameBoard from './components/game/GameBoard'
 import './App.css'
 
 // Define what data we expect from the backend
@@ -8,31 +9,17 @@ interface ApiResponse {
   timestamp: string;
 }
 
-interface GameStatus {
-  message: string;
-  players_online: number;
-  games_active: number;
-}
-
 function App() {
-  // State to store data from backend
   const [apiData, setApiData] = useState<ApiResponse | null>(null);
-  const [gameStatus, setGameStatus] = useState<GameStatus | null>(null);
+  const [showGame, setShowGame] = useState(false);
   const [loading, setLoading] = useState(true);
 
   // Function to fetch data from backend
   const fetchData = async () => {
     try {
-      // Call your backend API
       const response = await fetch('http://localhost:3001/');
       const data = await response.json();
       setApiData(data);
-
-      // Call game status endpoint
-      const gameResponse = await fetch('http://localhost:3001/api/game/status');
-      const gameData = await gameResponse.json();
-      setGameStatus(gameData);
-      
       setLoading(false);
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -47,6 +34,10 @@ function App() {
 
   if (loading) {
     return <div className="loading">Connecting to game server...</div>;
+  }
+
+  if (showGame) {
+    return <GameBoard />;
   }
 
   return (
@@ -65,18 +56,24 @@ function App() {
           </div>
         )}
 
-        {/* Display game status */}
-        {gameStatus && (
-          <div className="game-status">
-            <h3>Game Status</h3>
-            <p>👥 Players Online: {gameStatus.players_online}</p>
-            <p>🎮 Active Games: {gameStatus.games_active}</p>
-          </div>
-        )}
+        <div className="game-actions">
+          <button 
+            onClick={() => setShowGame(true)} 
+            className="play-btn"
+          >
+            🎮 Play Game
+          </button>
+          
+          <button onClick={fetchData} className="refresh-btn">
+            🔄 Refresh Status
+          </button>
+        </div>
 
-        <button onClick={fetchData} className="refresh-btn">
-          🔄 Refresh Status
-        </button>
+        <div className="project-info">
+          <h3>About This Project</h3>
+          <p>A modern implementation of traditional Senegalese strategy game</p>
+          <p>Built with React, TypeScript, and Node.js</p>
+        </div>
       </header>
     </div>
   );
