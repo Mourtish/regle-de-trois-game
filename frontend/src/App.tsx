@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react';
+import { API_URL } from './utils/api';
 import GameBoard from './components/game/GameBoard'
 import AuthModal from './components/auth/AuthModal'
 import './App.css'
@@ -56,7 +57,7 @@ function App() {
   // Function to fetch data from backend
   const fetchData = async () => {
     try {
-      const response = await fetch('http://localhost:3001/');
+  const response = await fetch(API_URL + '/');
       const data = await response.json();
       setApiData(data);
       setLoading(false);

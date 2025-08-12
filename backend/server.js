@@ -1,3 +1,4 @@
+
 const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
@@ -6,8 +7,23 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: (origin, callback) => {
+    // Allow Codespaces frontend URLs or localhost
+    if (
+      !origin ||
+      origin.includes('github.dev') ||
+      origin.startsWith('http://localhost:5173')
+    ) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true
+}));
 app.use(express.json());
 
 // MongoDB connection
@@ -17,6 +33,7 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/regle-de-
 })
 .then(() => console.log('📦 Connected to MongoDB'))
 .catch(err => console.log('❌ MongoDB connection error:', err));
+
 
 // Import routes
 const authRoutes = require('./routes/auth');

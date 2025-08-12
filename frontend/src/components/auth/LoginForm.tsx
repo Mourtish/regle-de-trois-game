@@ -1,5 +1,6 @@
-// LoginForm.tsx
+
 import React, { useState } from 'react';
+import { apiCall } from '../../utils/api';
 
 interface LoginFormProps {
   onLogin: (userData: any) => void;
@@ -9,36 +10,31 @@ interface LoginFormProps {
 
 const LoginForm: React.FC<LoginFormProps> = ({ onLogin, onSwitchToRegister, isLoading }) => {
   const [formData, setFormData] = useState({
-    identifier: '',
+    email: '',
     password: ''
   });
-  const [error, setError] = useState('');
+  const [error, setError] = useState<string>('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
     try {
-      const response = await fetch('http://localhost:3001/api/auth/login', {
+      const response = await apiCall('/api/auth/login', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify(formData)
       });
 
       const data = await response.json();
 
       if (data.success) {
-        localStorage.setItem('authToken', data.token);
-        localStorage.setItem('userData', JSON.stringify(data.user));
         onLogin(data.user);
       } else {
         setError(data.message || 'Login failed');
       }
-    } catch (error) {
+    } catch (err) {
       setError('Network error. Please try again.');
-      console.error('Login error:', error);
+      console.error('Login error:', err);
     }
   };
 
@@ -53,12 +49,12 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLogin, onSwitchToRegister, isLo
     <form onSubmit={handleSubmit} style={{
       display: 'flex',
       flexDirection: 'column',
-      gap: '20px',
+      gap: '15px',
       maxWidth: '400px',
       margin: '0 auto'
     }}>
       <h2 style={{ textAlign: 'center', color: '#333', marginBottom: '20px' }}>
-        🔐 Login to Play
+        🔑 Login
       </h2>
 
       {error && (
@@ -75,15 +71,15 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLogin, onSwitchToRegister, isLo
 
       <div>
         <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
-          Username or Email
+          Email
         </label>
         <input
-          type="text"
-          name="identifier"
-          value={formData.identifier}
+          type="email"
+          name="email"
+          value={formData.email}
           onChange={handleChange}
           required
-          placeholder="Enter your username or email"
+          placeholder="your.email@example.com"
           style={{
             width: '100%',
             padding: '12px',
@@ -107,7 +103,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLogin, onSwitchToRegister, isLo
           value={formData.password}
           onChange={handleChange}
           required
-          placeholder="Enter your password"
+          placeholder="Your password"
           style={{
             width: '100%',
             padding: '12px',
@@ -125,7 +121,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLogin, onSwitchToRegister, isLo
         type="submit"
         disabled={isLoading}
         style={{
-          background: isLoading ? '#ccc' : 'linear-gradient(45deg, #4CAF50, #45a049)',
+          background: isLoading ? '#ccc' : 'linear-gradient(45deg, #2196F3, #1976D2)',
           color: 'white',
           border: 'none',
           padding: '15px',
@@ -134,12 +130,12 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLogin, onSwitchToRegister, isLo
           fontWeight: 'bold',
           cursor: isLoading ? 'not-allowed' : 'pointer',
           transition: 'all 0.3s ease',
-          transform: isLoading ? 'none' : 'translateY(0)',
+          marginTop: '10px'
         }}
         onMouseOver={(e) => {
           if (!isLoading) {
             e.currentTarget.style.transform = 'translateY(-2px)';
-            e.currentTarget.style.boxShadow = '0 4px 15px rgba(76, 175, 80, 0.3)';
+            e.currentTarget.style.boxShadow = '0 4px 15px rgba(33, 150, 243, 0.3)';
           }
         }}
         onMouseOut={(e) => {
@@ -149,7 +145,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLogin, onSwitchToRegister, isLo
           }
         }}
       >
-        {isLoading ? '🔄 Logging in...' : '🚀 Login'}
+        {isLoading ? '🔄 Logging in...' : '🔑 Login'}
       </button>
 
       <div style={{ textAlign: 'center', marginTop: '20px' }}>
@@ -160,7 +156,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLogin, onSwitchToRegister, isLo
           style={{
             background: 'none',
             border: 'none',
-            color: '#4CAF50',
+            color: '#2196F3',
             cursor: 'pointer',
             textDecoration: 'underline',
             fontSize: '16px'
