@@ -39,7 +39,13 @@ type PawnAnimation = {
   progress: number;
 };
 
-const GameBoard: React.FC = () => {
+interface GameBoardProps {
+  onReturn: () => void;
+  showAuthButton?: boolean;
+  onShowAuth?: () => void;
+}
+
+const GameBoard: React.FC<GameBoardProps> = ({ onReturn, showAuthButton, onShowAuth }) => {
   const [gameState, setGameState] = useState<GameState>({
     board: Array(9).fill(null),
     currentPlayer: 'player1',
@@ -410,8 +416,52 @@ const GameBoard: React.FC = () => {
       fontFamily: 'Arial, sans-serif',
       background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
       minHeight: '100vh',
-      color: 'white'
+      color: 'white',
+      position: 'relative'
     }}>
+      {/* Return Button */}
+      <button
+        onClick={onReturn}
+        style={{
+          position: 'absolute',
+          top: 20,
+          left: 20,
+          zIndex: 10,
+          padding: '10px 18px',
+          background: '#eee',
+          border: '1px solid #ccc',
+          borderRadius: '8px',
+          fontWeight: 'bold',
+          cursor: 'pointer',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
+        }}
+      >
+        ⬅️ Return
+      </button>
+
+      {/* Auth Button for guests */}
+      {showAuthButton && onShowAuth && (
+        <button
+          onClick={onShowAuth}
+          style={{
+            position: 'absolute',
+            top: 18,
+            right: 18,
+            zIndex: 10,
+            padding: '4px 10px',
+            background: '#4CAF50',
+            color: 'white',
+            border: 'none',
+            borderRadius: '6px',
+            fontWeight: 500,
+            fontSize: '0.95em',
+            cursor: 'pointer',
+            boxShadow: '0 1px 4px rgba(0,0,0,0.10)'
+          }}
+        >
+          🔐 Login
+        </button>
+      )}
       {/* Game Header */}
       <div style={{
         textAlign: 'center',

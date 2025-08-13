@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
+import { io } from 'socket.io-client';
 import { API_URL } from './utils/api';
 import GameBoard from './components/game/GameBoard'
+import Lobby from './components/Lobby';
 import AuthModal from './components/auth/AuthModal'
 import './App.css'
 
@@ -30,11 +32,34 @@ interface User {
 }
 
 function App() {
+  const [inLobby, setInLobby] = useState(false);
+  const [currentGameId, setCurrentGameId] = useState<string | null>(null);
+  // Socket.IO test connection
+  useEffect(() => {
+    const socket = io(API_URL, {
+      withCredentials: true,
+      transports: ['websocket'],
+    });
+
+    socket.on('connect', () => {
+      console.log('Connected to Socket.IO server!', socket.id);
+    });
+
+    socket.on('disconnect', () => {
+      console.log('Disconnected from Socket.IO server');
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, []);
   const [apiData, setApiData] = useState<ApiResponse | null>(null);
   const [showGame, setShowGame] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  // For showing AuthModal on the board
+  const [showBoardAuth, setShowBoardAuth] = useState(false);
 
   // Check if user is already logged in
   useEffect(() => {
@@ -82,8 +107,62 @@ function App() {
     return <div className="loading">Connecting to game server...</div>;
   }
 
-  if (showGame && user) {
-    return <GameBoard />;
+  if (inLobby) {
+    return (
+      <>
+        <button
+          style={{
+            position: 'absolute',
+            top: 24,
+            right: 24,
+            zIndex: 100,
+            padding: '10px 18px',
+            background: '#2196F3',
+            color: 'white',
+            border: 'none',
+            borderRadius: '8px',
+            fontWeight: 'bold',
+            cursor: 'pointer',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.12)'
+          }}
+          onClick={() => setInLobby(false)}
+        >
+          ⬅️ Back to Home
+        </button>
+        <Lobby
+          onJoinGame={(gameId) => {
+            setCurrentGameId(gameId);
+            setInLobby(false);
+            setShowGame(true);
+          }}
+        />
+      </>
+    );
+  }
+
+  if (showGame) {
+    return (
+      <>
+        <GameBoard 
+          onReturn={() => {
+            setShowGame(false);
+            setInLobby(true);
+            setCurrentGameId(null);
+          }}
+          showAuthButton={!user}
+          onShowAuth={() => setShowBoardAuth(true)}
+          // gameId={currentGameId}
+        />
+        <AuthModal
+          isOpen={showBoardAuth}
+          onClose={() => setShowBoardAuth(false)}
+          onAuthSuccess={(userData) => {
+            setUser(userData);
+            setShowBoardAuth(false);
+          }}
+        />
+      </>
+    );
   }
 
   return (
@@ -104,8 +183,8 @@ function App() {
           </div>
         ) : (
           <div className="auth-prompt">
-            <h3>🎮 Ready to Play?</h3>
-            <p>Login or create an account to track your progress and compete!</p>
+            <h3>🎮 Welcome!</h3>
+            <p>You can play as a guest or register to track your progress and compete!</p>
           </div>
         )}
         
@@ -120,6 +199,13 @@ function App() {
         )}
 
         <div className="game-actions">
+          <button
+            onClick={() => setInLobby(true)}
+            className="lobby-btn"
+            style={{ marginBottom: 12 }}
+          >
+            🧑‍🤝‍🧑 Multiplayer Lobby
+          </button>
           {user ? (
             <>
               <button 
@@ -136,14 +222,21 @@ function App() {
               </button>
             </>
           ) : (
-            <button 
-              onClick={() => setShowAuthModal(true)}
-              className="auth-btn"
-            >
-              🔐 Login / Register
-            </button>
+            <>
+              <button 
+                onClick={() => setShowGame(true)} 
+                className="play-btn"
+              >
+                🎮 Play as Guest
+              </button>
+              <button 
+                onClick={() => setShowAuthModal(true)}
+                className="auth-btn"
+              >
+                🔐 Login / Register
+              </button>
+            </>
           )}
-          
           <button onClick={fetchData} className="refresh-btn">
             🔄 Refresh Status
           </button>
