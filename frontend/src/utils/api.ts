@@ -21,14 +21,23 @@ const getApiUrl = () => {
 
 export const API_URL = getApiUrl();
 
-// Helper function for API calls
+// Helper function for API calls with auth token support
 export const apiCall = async (endpoint: string, options: RequestInit = {}) => {
+  const token = localStorage.getItem('authToken');
+  
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...options.headers as Record<string, string>,
+  };
+  
+  // Add authorization header if token exists
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  
   const response = await fetch(`${API_URL}${endpoint}`, {
     ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
+    headers,
   });
   
   return response;

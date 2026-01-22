@@ -5,17 +5,26 @@ require('dotenv').config();
 
 const app = express();
 const http = require('http');
+
+// Helper to allow common dev hosts plus optional FRONTEND_URL
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
+  process.env.FRONTEND_URL
+].filter(Boolean);
+
+const isAllowedOrigin = (origin) => {
+  if (!origin) return true; // allow same-origin/non-browser
+  if (origin.includes('github.dev') || origin.includes('apn.github.dev')) return true;
+  return allowedOrigins.some((o) => origin.startsWith(o));
+};
+
 const server = http.createServer(app);
 const { Server } = require('socket.io');
 const io = new Server(server, {
   cors: {
     origin: (origin, callback) => {
-      if (
-        !origin ||
-        origin.includes('github.dev') ||
-        origin.includes('apn.github.dev') ||
-        origin.startsWith('http://localhost:5173')
-      ) {
+      if (isAllowedOrigin(origin)) {
         callback(null, true);
       } else {
         callback(new Error('Not allowed by CORS'));
@@ -28,12 +37,7 @@ const io = new Server(server, {
 // CORS middleware FIRST
 app.use(cors({
   origin: (origin, callback) => {
-    if (
-      !origin ||
-      origin.includes('github.dev') ||
-      origin.includes('apn.github.dev') ||
-      origin.startsWith('http://localhost:5173')
-    ) {
+    if (isAllowedOrigin(origin)) {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));
@@ -43,13 +47,25 @@ app.use(cors({
 }));
 app.use(express.json());
 
+// Validate required environment variables
+if (!process.env.JWT_SECRET) {
+  console.warn('⚠️  WARNING: JWT_SECRET not set in .env - using fallback (UNSAFE FOR PRODUCTION)');
+}
+
 // MongoDB connection
+let dbConnected = false;
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/regle-de-trois', {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 })
-.then(() => console.log('📦 Connected to MongoDB'))
-.catch(err => console.log('❌ MongoDB connection error:', err));
+.then(() => {
+  dbConnected = true;
+  console.log('📦 Connected to MongoDB');
+})
+.catch(err => {
+  dbConnected = false;
+  console.log('❌ MongoDB connection error:', err.message);
+});
 
 // Import routes
 const authRoutes = require('./routes/auth');
@@ -62,6 +78,7 @@ app.get('/', (req, res) => {
   res.json({ 
     message: 'Règle de Trois API is running!',
     status: 'success',
+    database: dbConnected ? 'connected' : 'disconnected',
     timestamp: new Date().toISOString()
   });
 });

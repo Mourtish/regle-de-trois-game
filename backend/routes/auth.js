@@ -53,9 +53,10 @@ router.post('/register', async (req, res) => {
     await user.save();
 
     // Create JWT token
+    const jwtSecret = process.env.JWT_SECRET || 'fallback-secret-key-change-in-production';
     const token = jwt.sign(
       { userId: user._id, username: user.username },
-      process.env.JWT_SECRET,
+      jwtSecret,
       { expiresIn: '7d' }
     );
 
@@ -67,7 +68,19 @@ router.post('/register', async (req, res) => {
         id: user._id,
         username: user.username,
         email: user.email,
-        displayName: user.displayName
+        displayName: user.displayName,
+        profile: {
+          displayName: user.displayName,
+          avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + user.username,
+          preferredColor: '#ff4444'
+        },
+        gameStats: {
+          gamesPlayed: user.gamesPlayed || 0,
+          gamesWon: user.gamesWon || 0,
+          gamesLost: 0,
+          winStreak: 0,
+          bestWinStreak: 0
+        }
       }
     });
 
@@ -115,9 +128,10 @@ router.post('/login', async (req, res) => {
     }
 
     // Create JWT token
+    const jwtSecret = process.env.JWT_SECRET || 'fallback-secret-key-change-in-production';
     const token = jwt.sign(
       { userId: user._id, username: user.username },
-      process.env.JWT_SECRET,
+      jwtSecret,
       { expiresIn: '7d' }
     );
 
@@ -129,7 +143,19 @@ router.post('/login', async (req, res) => {
         id: user._id,
         username: user.username,
         email: user.email,
-        displayName: user.displayName
+        displayName: user.displayName,
+        profile: {
+          displayName: user.displayName,
+          avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + user.username,
+          preferredColor: '#4444ff'
+        },
+        gameStats: {
+          gamesPlayed: user.gamesPlayed || 0,
+          gamesWon: user.gamesWon || 0,
+          gamesLost: 0,
+          winStreak: 0,
+          bestWinStreak: 0
+        }
       }
     });
 

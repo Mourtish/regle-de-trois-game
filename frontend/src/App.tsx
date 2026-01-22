@@ -68,7 +68,25 @@ function App() {
     
     if (token && userData) {
       try {
-        setUser(JSON.parse(userData));
+        const parsedUser = JSON.parse(userData);
+        // Ensure user has the expected shape
+        const normalizedUser: User = {
+          id: parsedUser.id,
+          username: parsedUser.username,
+          profile: parsedUser.profile || {
+            displayName: parsedUser.displayName || parsedUser.username,
+            avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + parsedUser.username,
+            preferredColor: '#4444ff'
+          },
+          gameStats: parsedUser.gameStats || {
+            gamesPlayed: parsedUser.gamesPlayed || 0,
+            gamesWon: parsedUser.gamesWon || 0,
+            gamesLost: 0,
+            winStreak: 0,
+            bestWinStreak: 0
+          }
+        };
+        setUser(normalizedUser);
       } catch (error) {
         console.error('Error parsing user data:', error);
         localStorage.removeItem('authToken');

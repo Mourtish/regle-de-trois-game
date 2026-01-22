@@ -22,12 +22,18 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLogin, onSwitchToRegister, isLo
     try {
       const response = await apiCall('/api/auth/login', {
         method: 'POST',
-        body: JSON.stringify(formData)
+        body: JSON.stringify({
+          identifier: formData.email,
+          password: formData.password
+        })
       });
 
       const data = await response.json();
 
       if (data.success) {
+        // Save token and user data to localStorage
+        localStorage.setItem('authToken', data.token);
+        localStorage.setItem('userData', JSON.stringify(data.user));
         onLogin(data.user);
       } else {
         setError(data.message || 'Login failed');
