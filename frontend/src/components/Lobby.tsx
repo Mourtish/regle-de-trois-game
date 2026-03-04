@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
-import { API_URL } from '../utils/api';
+import { getSocketUrl } from '../utils/api';
 
 interface Game {
   id: string;
@@ -13,7 +13,7 @@ const Lobby: React.FC<{ onJoinGame: (gameId: string) => void }> = ({ onJoinGame 
   const [creating, setCreating] = useState(false);
 
   useEffect(() => {
-    const s = io(API_URL, { withCredentials: true, transports: ['websocket'] });
+    const s = io(getSocketUrl(), { withCredentials: true, transports: ['websocket', 'polling'] });
     setSocket(s);
 
     s.on('gameList', (gameList: Game[]) => {

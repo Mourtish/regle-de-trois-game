@@ -407,304 +407,420 @@ const GameBoard: React.FC<GameBoardProps> = ({ onReturn, showAuthButton, onShowA
     setGameState({ ...gameState, [`${player}Name`]: name });
   };
 
+  // ─── helpers for pawn inventory display ────────────────────────────────────
+  const pawnsOnBoard = (player: 'player1' | 'player2') =>
+    gameState.board.filter(c => c === player).length;
+
+  const PawnInventory = ({ player }: { player: 'player1' | 'player2' }) => {
+    const color      = player === 'player1' ? gameState.player1Color : gameState.player2Color;
+    const inHand     = player === 'player1' ? gameState.player1Pawns : gameState.player2Pawns;
+    const placed     = pawnsOnBoard(player);
+    const isPlacement = gameState.phase === 'placement';
+
+    return (
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        {Array.from({ length: 3 }).map((_, i) => {
+          // During placement: first `placed` are on board (dim), rest in hand (full)
+          // During movement: count directly from board
+          const onBoard = isPlacement ? i < placed : i < placed;
+          return (
+            <div
+              key={i}
+              title={onBoard ? 'On board' : 'In hand'}
+              style={{
+                width: 22, height: 22, borderRadius: '50%',
+                background: onBoard
+                  ? 'transparent'
+                  : `radial-gradient(circle at 35% 35%, ${color}ff, ${color}99)`,
+                border: `3px solid ${color}`,
+                boxShadow: onBoard
+                  ? 'none'
+                  : `0 0 10px ${color}88, inset 0 1px 2px rgba(255,255,255,0.3)`,
+                transition: 'all 0.4s ease',
+                opacity: onBoard ? 0.35 : 1,
+              }}
+            />
+          );
+        })}
+        {isPlacement && (
+          <span style={{ fontSize: '0.75em', color: 'rgba(255,255,255,0.6)' }}>
+            {inHand} left
+          </span>
+        )}
+      </div>
+    );
+  };
+
+  const activeColor = gameState.currentPlayer === 'player1'
+    ? gameState.player1Color
+    : gameState.player2Color;
+
   return (
     <div style={{
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
-      padding: '20px',
-      fontFamily: 'Arial, sans-serif',
-      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      padding: '24px 16px 40px',
+      fontFamily: "'Segoe UI', system-ui, sans-serif",
+      background: 'linear-gradient(160deg, #060621 0%, #0b1640 45%, #091232 100%)',
       minHeight: '100vh',
       color: 'white',
-      position: 'relative'
+      position: 'relative',
     }}>
-      {/* Return Button */}
-      <button
-        onClick={onReturn}
-        style={{
-          position: 'absolute',
-          top: 20,
-          left: 20,
-          zIndex: 10,
-          padding: '10px 18px',
-          background: '#eee',
-          border: '1px solid #ccc',
-          borderRadius: '8px',
-          fontWeight: 'bold',
-          cursor: 'pointer',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
-        }}
-      >
-        ⬅️ Return
-      </button>
 
-      {/* Auth Button for guests */}
-      {showAuthButton && onShowAuth && (
+      {/* — keyframe animations injected via style tag — */}
+      <style>{`
+        @keyframes pulse-ring {
+          0%   { box-shadow: 0 0 0 0 rgba(255,255,255,0.5); }
+          70%  { box-shadow: 0 0 0 10px rgba(255,255,255,0); }
+          100% { box-shadow: 0 0 0 0 rgba(255,255,255,0); }
+        }
+        @keyframes slide-in {
+          from { opacity: 0; transform: translateY(-10px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes winner-glow {
+          0%, 100% { text-shadow: 0 0 20px #ffd700, 0 0 40px #ffa500; }
+          50%       { text-shadow: 0 0 40px #ffd700, 0 0 80px #ff8c00; }
+        }
+        @keyframes thinking-dot {
+          0%, 80%, 100% { opacity: 0.3; transform: scale(0.8); }
+          40%            { opacity: 1;   transform: scale(1.2); }
+        }
+      `}</style>
+
+      {/* ── Top bar ─────────────────────────────────────────────────────── */}
+      <div style={{
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        width: '100%', maxWidth: 620, marginBottom: 20,
+      }}>
         <button
-          onClick={onShowAuth}
+          onClick={onReturn}
           style={{
-            position: 'absolute',
-            top: 18,
-            right: 18,
-            zIndex: 10,
-            padding: '4px 10px',
-            background: '#4CAF50',
-            color: 'white',
-            border: 'none',
-            borderRadius: '6px',
-            fontWeight: 500,
-            fontSize: '0.95em',
-            cursor: 'pointer',
-            boxShadow: '0 1px 4px rgba(0,0,0,0.10)'
+            padding: '8px 18px',
+            background: 'rgba(255,255,255,0.08)',
+            border: '1px solid rgba(255,255,255,0.15)',
+            borderRadius: 10, color: 'white', fontWeight: 600,
+            cursor: 'pointer', fontSize: '0.9em', backdropFilter: 'blur(8px)',
+            transition: 'all 0.2s',
           }}
+          onMouseOver={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.15)')}
+          onMouseOut={e  => (e.currentTarget.style.background = 'rgba(255,255,255,0.08)')}
         >
-          🔐 Login
+          ← Back
         </button>
-      )}
-      {/* Game Header */}
-      <div style={{
-        textAlign: 'center',
-        marginBottom: '20px',
-        background: 'rgba(255,255,255,0.1)',
-        padding: '20px',
-        borderRadius: '15px',
-        backdropFilter: 'blur(10px)'
-      }}>
-        <h1 style={{ margin: '0 0 10px 0', fontSize: '2.5em' }}>🌟 Règle de Trois</h1>
-        <p style={{ margin: '0', opacity: '0.9' }}>
-          {gameState.gameMode === 'human-vs-ai' ? 'Challenge the AI!' : 'Two Player Mode'}
-        </p>
-      </div>
 
-      {/* Game Mode Toggle */}
-      <button
-        onClick={toggleGameMode}
-        style={{
-          background: 'linear-gradient(45deg, #4CAF50, #45a049)',
-          color: 'white',
-          border: 'none',
-          padding: '12px 25px',
-          borderRadius: '25px',
-          fontSize: '1.1em',
-          cursor: 'pointer',
-          marginBottom: '20px',
-          transition: 'all 0.3s ease'
-        }}
-      >
-        {gameState.gameMode === 'human-vs-ai' ? '🤖 AI Mode' : '👥 2-Player Mode'}
-      </button>
-
-      {/* Player Setup */}
-      <div style={{
-        display: 'flex',
-        gap: '20px',
-        marginBottom: '20px',
-        flexWrap: 'wrap',
-        justifyContent: 'center'
-      }}>
-        {/* Player 1 Setup */}
+        {/* Mode pill toggle */}
         <div style={{
-          background: 'rgba(255,255,255,0.1)',
-          padding: '15px',
-          borderRadius: '10px',
-          backdropFilter: 'blur(10px)',
-          minWidth: '250px'
+          background: 'rgba(255,255,255,0.07)',
+          borderRadius: 30, padding: '4px',
+          display: 'flex', border: '1px solid rgba(255,255,255,0.12)',
         }}>
-          <h3>👤 {gameState.player1Name}</h3>
-          {gameState.gameMode === 'human-vs-human' && (
-            <input
-              type="text"
-              value={gameState.player1Name}
-              onChange={(e) => handleNameChange('player1', e.target.value)}
-              style={{
-                width: '100%',
-                padding: '8px',
-                marginBottom: '10px',
-                borderRadius: '5px',
-                border: 'none',
-                fontSize: '16px'
-              }}
-            />
-          )}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <label>Color:</label>
-            <input
-              type="color"
-              value={gameState.player1Color}
-              onChange={(e) => handleColorChange('player1', e.target.value)}
-              style={{ width: '40px', height: '40px', borderRadius: '50%', border: 'none' }}
-            />
-          </div>
-          <div style={{ marginTop: '10px' }}>
-            Status: {gameState.phase === 'placement' ? `${gameState.player1Pawns} pawns to place` : 'Ready to move'}
-          </div>
+          {(['human-vs-ai', 'human-vs-human'] as const).map(mode => (
+            <button key={mode} onClick={() => { if (gameState.gameMode !== mode) toggleGameMode(); }} style={{
+              padding: '7px 16px', borderRadius: 26, border: 'none', cursor: 'pointer',
+              fontWeight: 600, fontSize: '0.82em', transition: 'all 0.25s',
+              background: gameState.gameMode === mode
+                ? 'linear-gradient(135deg, #1e90ff, #0060cc)'
+                : 'transparent',
+              color: gameState.gameMode === mode ? 'white' : 'rgba(255,255,255,0.5)',
+              boxShadow: gameState.gameMode === mode ? '0 2px 10px #1e90ff66' : 'none',
+            }}>
+              {mode === 'human-vs-ai' ? '🤖 vs AI' : '👥 2 Players'}
+            </button>
+          ))}
         </div>
 
-        {/* Player 2/AI Setup */}
-        <div style={{
-          background: 'rgba(255,255,255,0.1)',
-          padding: '15px',
-          borderRadius: '10px',
-          backdropFilter: 'blur(10px)',
-          minWidth: '250px'
-        }}>
-          <h3>{gameState.gameMode === 'human-vs-ai' ? '🤖' : '👤'} {gameState.player2Name}</h3>
-          {gameState.gameMode === 'human-vs-human' && (
-            <input
-              type="text"
-              value={gameState.player2Name}
-              onChange={(e) => handleNameChange('player2', e.target.value)}
-              style={{
-                width: '100%',
-                padding: '8px',
-                marginBottom: '10px',
-                borderRadius: '5px',
-                border: 'none',
-                fontSize: '16px'
-              }}
-            />
-          )}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <label>Color:</label>
-            <input
-              type="color"
-              value={gameState.player2Color}
-              onChange={(e) => handleColorChange('player2', e.target.value)}
-              style={{ width: '40px', height: '40px', borderRadius: '50%', border: 'none' }}
-            />
-          </div>
-          <div style={{ marginTop: '10px' }}>
-            {gameState.isAiThinking ? '🤔 AI is thinking...' : 
-             gameState.phase === 'placement' ? `${gameState.player2Pawns} pawns to place` : 'Ready to move'}
-          </div>
-        </div>
-      </div>
-
-      {/* Current Player Indicator */}
-      <div style={{
-        background: gameState.currentPlayer === 'player1' ? gameState.player1Color : gameState.player2Color,
-        color: 'white',
-        padding: '15px 30px',
-        borderRadius: '25px',
-        fontSize: '1.2em',
-        fontWeight: 'bold',
-        marginBottom: '20px',
-        boxShadow: '0 4px 15px rgba(0,0,0,0.3)',
-        opacity: gameState.isAiThinking ? 0.7 : 1,
-        transition: 'opacity 0.3s ease'
-      }}>
-        {gameState.winner ? (
-          `🎉 ${gameState.winner === 'player1' ? gameState.player1Name : gameState.player2Name} Wins!`
-        ) : gameState.isAiThinking ? (
-          '🤖 AI is thinking...'
+        {showAuthButton && onShowAuth ? (
+          <button onClick={onShowAuth} style={{
+            padding: '8px 14px', background: 'linear-gradient(135deg, #00b894, #00a381)',
+            border: 'none', borderRadius: 10, color: 'white', fontWeight: 600,
+            cursor: 'pointer', fontSize: '0.88em',
+            boxShadow: '0 2px 10px #00b89455',
+          }}>
+            🔐 Login
+          </button>
         ) : (
-          `${gameState.currentPlayer === 'player1' ? gameState.player1Name : gameState.player2Name}'s Turn`
+          <div style={{ width: 80 }} />
         )}
       </div>
 
-      {/* Game Board */}
-      <div style={{
-        background: 'rgba(255,255,255,0.2)',
-        padding: '30px',
-        borderRadius: '20px',
-        backdropFilter: 'blur(10px)',
-        boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
-        position: 'relative'
+      {/* ── Title ───────────────────────────────────────────────────────── */}
+      <h1 style={{
+        margin: '0 0 4px', fontSize: '2em', letterSpacing: 1,
+        background: 'linear-gradient(90deg, #7eb8ff, #a78bfa, #7eb8ff)',
+        WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+        backgroundClip: 'text',
       }}>
-        <svg width="400" height="400" style={{ background: 'rgba(255,255,255,0.1)', borderRadius: '10px' }}>
-          {/* Draw the square outline */}
-          <rect x="100" y="100" width="200" height="200" fill="none" stroke="#333" strokeWidth="3"/>
-          
-          {/* Draw lines */}
-          <line x1="100" y1="200" x2="300" y2="200" stroke="#333" strokeWidth="2"/>
-          <line x1="200" y1="100" x2="200" y2="300" stroke="#333" strokeWidth="2"/>
-          <line x1="100" y1="100" x2="300" y2="300" stroke="#333" strokeWidth="2"/>
-          <line x1="300" y1="100" x2="100" y2="300" stroke="#333" strokeWidth="2"/>
+        Règle de Trois
+      </h1>
+      <p style={{ margin: '0 0 22px', fontSize: '0.85em', color: 'rgba(255,255,255,0.45)', letterSpacing: 2 }}>
+        TRADITIONAL SENEGALESE STRATEGY
+      </p>
 
-          {/* Draw static positions */}
-          {positions.map((pos) => (
-            <circle
-              key={`static-${pos.id}`}
-              cx={pos.x}
-              cy={pos.y}
-              r="25"
-              fill={
-                gameState.animatingMove?.from === pos.id ? 'transparent' :
-                gameState.board[pos.id] === 'player1' ? gameState.player1Color :
-                gameState.board[pos.id] === 'player2' ? gameState.player2Color :
-                '#ffffff'
-              }
-              stroke={gameState.selectedPosition === pos.id ? '#00ff00' : '#333'}
-              strokeWidth={gameState.selectedPosition === pos.id ? '4' : '3'}
-              style={{ 
-                cursor: gameState.isAiThinking || gameState.animatingMove ? 'wait' : 'pointer',
-                filter: gameState.selectedPosition === pos.id ? 'drop-shadow(0 0 10px #00ff00)' : 'none',
-                transition: 'all 0.2s ease'
-              }}
-              onClick={() => handlePositionClick(pos.id)}
+      {/* ── Phase badge ─────────────────────────────────────────────────── */}
+      <div style={{
+        display: 'inline-flex', alignItems: 'center', gap: 8,
+        padding: '6px 18px', borderRadius: 20, marginBottom: 18,
+        background: gameState.phase === 'placement'
+          ? 'linear-gradient(135deg, #f39c12, #e67e22)'
+          : 'linear-gradient(135deg, #1e90ff, #0055c4)',
+        fontSize: '0.82em', fontWeight: 700, letterSpacing: 1.5,
+        boxShadow: gameState.phase === 'placement'
+          ? '0 0 18px #f39c1255'
+          : '0 0 18px #1e90ff55',
+        animation: 'slide-in 0.3s ease',
+      }}>
+        {gameState.phase === 'placement' ? '📍 PLACEMENT PHASE' : '🎯 MOVEMENT PHASE'}
+      </div>
+
+      {/* ── Player cards (pawn inventory) ───────────────────────────────── */}
+      <div style={{ display: 'flex', gap: 14, marginBottom: 20, width: '100%', maxWidth: 560, justifyContent: 'center', flexWrap: 'wrap' }}>
+        {(['player1', 'player2'] as const).map(player => {
+          const isP1      = player === 'player1';
+          const color     = isP1 ? gameState.player1Color : gameState.player2Color;
+          const name      = isP1 ? gameState.player1Name  : gameState.player2Name;
+          const isActive  = gameState.currentPlayer === player && !gameState.winner;
+          const isAI      = !isP1 && gameState.gameMode === 'human-vs-ai';
+
+          return (
+            <div key={player} style={{
+              flex: 1, minWidth: 200, maxWidth: 260,
+              background: isActive
+                ? `linear-gradient(135deg, ${color}22, ${color}08)`
+                : 'rgba(255,255,255,0.04)',
+              border: `1.5px solid ${isActive ? color + '88' : 'rgba(255,255,255,0.1)'}`,
+              borderRadius: 16, padding: '14px 18px',
+              backdropFilter: 'blur(8px)',
+              boxShadow: isActive ? `0 0 20px ${color}33` : 'none',
+              transition: 'all 0.35s ease',
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                <span style={{ fontWeight: 700, fontSize: '0.95em' }}>
+                  {isAI ? '🤖' : '👤'} {name}
+                </span>
+                {/* color picker */}
+                <input
+                  type="color" value={color}
+                  onChange={e => handleColorChange(player, e.target.value)}
+                  title="Pick color"
+                  style={{ width: 28, height: 28, borderRadius: '50%', border: 'none', cursor: 'pointer', background: 'none', padding: 0 }}
+                />
+              </div>
+
+              {/* Name edit for 2-player mode */}
+              {gameState.gameMode === 'human-vs-human' && (
+                <input
+                  type="text" value={name}
+                  onChange={e => handleNameChange(player, e.target.value)}
+                  style={{
+                    width: '100%', padding: '5px 8px', marginBottom: 8,
+                    borderRadius: 6, border: '1px solid rgba(255,255,255,0.15)',
+                    background: 'rgba(255,255,255,0.06)', color: 'white', fontSize: '0.85em',
+                    boxSizing: 'border-box',
+                  }}
+                />
+              )}
+
+              {/* Pawn inventory */}
+              <PawnInventory player={player} />
+            </div>
+          );
+        })}
+      </div>
+
+      {/* ── Turn / Winner indicator ──────────────────────────────────────── */}
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 10,
+        padding: '12px 26px', borderRadius: 28, marginBottom: 22,
+        background: gameState.winner
+          ? 'linear-gradient(135deg, #ffd700, #ffaa00)'
+          : `linear-gradient(135deg, ${activeColor}dd, ${activeColor}99)`,
+        color: gameState.winner ? '#1a0a00' : 'white',
+        fontWeight: 700, fontSize: '1.05em',
+        boxShadow: gameState.winner
+          ? '0 4px 20px #ffd70088'
+          : `0 4px 20px ${activeColor}55`,
+        animation: gameState.winner ? 'winner-glow 1.5s infinite ease-in-out' : 'none',
+        transition: 'background 0.4s, box-shadow 0.4s',
+      }}>
+        {gameState.winner ? (
+          <>🏆 {gameState.winner === 'player1' ? gameState.player1Name : gameState.player2Name} wins!</>
+        ) : gameState.isAiThinking ? (
+          <>
+            🤖 AI thinking
+            {[0,1,2].map(i => (
+              <span key={i} style={{
+                display: 'inline-block', width: 6, height: 6,
+                borderRadius: '50%', background: 'white', marginLeft: 3,
+                animation: `thinking-dot 1.2s ${i*0.2}s infinite ease-in-out`,
+              }} />
+            ))}
+          </>
+        ) : (
+          <>
+            <span style={{
+              width: 10, height: 10, borderRadius: '50%',
+              background: activeColor,
+              boxShadow: `0 0 0 0 ${activeColor}44`,
+              animation: 'pulse-ring 1.6s infinite',
+              display: 'inline-block', border: '2px solid rgba(255,255,255,0.7)',
+            }}/>
+            {gameState.currentPlayer === 'player1' ? gameState.player1Name : gameState.player2Name}'s
+            {' '}{gameState.phase === 'placement' ? 'placement' : 'move'}
+          </>
+        )}
+      </div>
+
+      {/* ── Game Board ──────────────────────────────────────────────────── */}
+      <div style={{
+        background: 'rgba(14, 30, 80, 0.7)',
+        padding: 28, borderRadius: 24,
+        backdropFilter: 'blur(12px)',
+        boxShadow: '0 12px 48px rgba(0,0,0,0.6), 0 0 0 1px rgba(30,144,255,0.15)',
+        position: 'relative',
+      }}>
+        <svg width="400" height="400" viewBox="30 30 340 340" style={{ display: 'block', overflow: 'visible' }}>
+          <defs>
+            <filter id="node-glow" x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur stdDeviation="4" result="blur"/>
+              <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+            <filter id="line-glow" x="-20%" y="-20%" width="140%" height="140%">
+              <feGaussianBlur stdDeviation="2.5" result="blur"/>
+              <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+          </defs>
+
+          {/* ─ Board lines ─────────────────────────────────────────────── */}
+          {[
+            // rows
+            [100,100,300,100], [100,200,300,200], [100,300,300,300],
+            // cols
+            [100,100,100,300], [200,100,200,300], [300,100,300,300],
+            // diagonals through center
+            [100,100,300,300], [300,100,100,300],
+          ].map(([x1,y1,x2,y2], i) => (
+            <line key={i}
+              x1={x1} y1={y1} x2={x2} y2={y2}
+              stroke="#1e90ff" strokeWidth="2.5" opacity="0.6"
+              filter="url(#line-glow)"
+              strokeLinecap="round"
             />
           ))}
 
-          {/* Draw animated pawns */}
+          {/* ─ Nodes ────────────────────────────────────────────────────── */}
+          {positions.map((pos) => {
+            const owner   = gameState.board[pos.id];
+            const isHiding = gameState.animatingMove?.from === pos.id;
+            const isSelected = gameState.selectedPosition === pos.id;
+            const nodeColor = owner === 'player1' ? gameState.player1Color
+                            : owner === 'player2' ? gameState.player2Color
+                            : null;
+            const canClick = !gameState.winner && !gameState.isAiThinking && !gameState.animatingMove
+                          && !(gameState.gameMode === 'human-vs-ai' && gameState.currentPlayer === 'player2');
+
+            return (
+              <g key={pos.id} onClick={() => handlePositionClick(pos.id)}
+                style={{ cursor: canClick ? 'pointer' : 'default' }}>
+                {/* outer ring when selected */}
+                {isSelected && (
+                  <circle cx={pos.x} cy={pos.y} r={34}
+                    fill="none" stroke="#00ff88" strokeWidth="2.5" opacity={0.7}
+                    style={{ animation: 'pulse-ring 1s infinite' }}
+                  />
+                )}
+                {/* node background */}
+                <circle cx={pos.x} cy={pos.y} r={24}
+                  fill={isHiding ? 'transparent'
+                      : nodeColor
+                        ? `radial-gradient(circle at 35% 35%, ${nodeColor}ff, ${nodeColor}bb)`
+                        : 'rgba(8, 20, 70, 0.85)'}
+                  stroke={
+                    isSelected
+                      ? '#00ff88'
+                      : nodeColor
+                        ? nodeColor
+                        : 'rgba(30,144,255,0.45)'
+                  }
+                  strokeWidth={isSelected ? 3 : 2}
+                  filter={nodeColor ? 'url(#node-glow)' : 'none'}
+                  style={{ transition: 'all 0.25s ease' }}
+                />
+                {/* pawn shine */}
+                {nodeColor && !isHiding && (
+                  <ellipse cx={pos.x - 7} cy={pos.y - 7} rx={7} ry={4}
+                    fill="rgba(255,255,255,0.25)" style={{ pointerEvents: 'none' }}
+                  />
+                )}
+                {/* node number hint (faint) */}
+                {!nodeColor && !isHiding && (
+                  <text x={pos.x} y={pos.y + 5} textAnchor="middle"
+                    fontSize="11" fill="rgba(100,160,255,0.25)"
+                    style={{ pointerEvents: 'none', userSelect: 'none' }}>
+                    {pos.id + 1}
+                  </text>
+                )}
+              </g>
+            );
+          })}
+
+          {/* ─ Animated pawn during movement ──────────────────────────── */}
           {animations.map((anim) => {
             const currentX = anim.fromX + (anim.toX - anim.fromX) * anim.progress;
             const currentY = anim.fromY + (anim.toY - anim.fromY) * anim.progress;
-            
+            const moverColor = gameState.currentPlayer === 'player1'
+              ? gameState.player1Color : gameState.player2Color;
             return (
-              <circle
-                key={anim.id}
-                cx={currentX}
-                cy={currentY}
-                r="25"
-                fill={gameState.player2Color}
-                stroke="#333"
-                strokeWidth="3"
-                style={{
-                  filter: 'drop-shadow(0 4px 10px rgba(0,0,0,0.3))',
-                }}
-              />
+              <g key={anim.id}>
+                <circle cx={currentX} cy={currentY} r={24}
+                  fill={moverColor}
+                  stroke={moverColor} strokeWidth="2"
+                  filter="url(#node-glow)"
+                />
+                <ellipse cx={currentX-7} cy={currentY-7} rx={7} ry={4}
+                  fill="rgba(255,255,255,0.25)"
+                />
+              </g>
             );
           })}
         </svg>
       </div>
 
-      {/* Game Controls */}
-      <div style={{ marginTop: '20px', display: 'flex', gap: '15px' }}>
-        <button
-          onClick={resetGame}
-          style={{
-            background: 'linear-gradient(45deg, #ff6b6b, #ee5a24)',
-            color: 'white',
-            border: 'none',
-            padding: '12px 25px',
-            borderRadius: '25px',
-            fontSize: '1.1em',
-            cursor: 'pointer',
-            transition: 'all 0.3s ease',
-            boxShadow: '0 4px 15px rgba(255,107,107,0.3)'
-          }}
+      {/* ── Controls ────────────────────────────────────────────────────── */}
+      <div style={{ marginTop: 22, display: 'flex', gap: 14, flexWrap: 'wrap', justifyContent: 'center' }}>
+        <button onClick={resetGame} style={{
+          background: 'linear-gradient(135deg, #ff6b6b, #c0392b)',
+          color: 'white', border: 'none',
+          padding: '11px 26px', borderRadius: 24,
+          fontSize: '0.95em', fontWeight: 700, cursor: 'pointer',
+          boxShadow: '0 4px 16px rgba(255,100,100,0.35)',
+          transition: 'all 0.2s',
+        }}
+          onMouseOver={e => (e.currentTarget.style.transform = 'translateY(-2px)')}
+          onMouseOut={e  => (e.currentTarget.style.transform = '')}
         >
           🔄 New Game
         </button>
       </div>
 
-      {/* Game Instructions */}
+      {/* ── How to play ─────────────────────────────────────────────────── */}
       <div style={{
-        marginTop: '30px',
-        background: 'rgba(255,255,255,0.1)',
-        padding: '20px',
-        borderRadius: '15px',
-        backdropFilter: 'blur(10px)',
-        maxWidth: '600px',
-        textAlign: 'left'
+        marginTop: 30, background: 'rgba(255,255,255,0.04)',
+        border: '1px solid rgba(255,255,255,0.08)',
+        padding: '18px 22px', borderRadius: 16,
+        maxWidth: 560, width: '100%',
+        backdropFilter: 'blur(8px)', fontSize: '0.87em',
+        lineHeight: '1.75', color: 'rgba(255,255,255,0.72)',
       }}>
-        <h3>📖 How to Play</h3>
-        <div style={{ lineHeight: '1.6' }}>
-          <strong>Phase 1 - Placement:</strong> Take turns placing your 3 pawns on any empty intersection.<br/>
-          <strong>Phase 2 - Movement:</strong> Move your pawns along the lines to adjacent intersections.<br/>
-          <strong>Goal:</strong> Get 3 of your pawns in a row (horizontal, vertical, or diagonal) to win!<br/>
-          <strong>AI Mode:</strong> Challenge our smart AI opponent with varying difficulty levels.
+        <div style={{ fontWeight: 700, marginBottom: 8, color: '#7eb8ff', fontSize: '0.95em' }}>📖 How to Play</div>
+        <div>
+          <strong style={{ color: '#f39c12' }}>Phase 1 – Placement:</strong>{' '}
+          Each player places their 3 pawns one by one on any empty intersection.<br/>
+          <strong style={{ color: '#1e90ff' }}>Phase 2 – Movement:</strong>{' '}
+          Select one of your pawns then tap an adjacent connected spot to move it.<br/>
+          <strong style={{ color: '#a78bfa' }}>Win:</strong>{' '}
+          Align all 3 of your pawns in a row — horizontal, vertical, or diagonal.
         </div>
       </div>
     </div>

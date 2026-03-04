@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { io } from 'socket.io-client';
-import { API_URL } from './utils/api';
+import { getSocketUrl } from './utils/api';
 import GameBoard from './components/game/GameBoard'
 import Lobby from './components/Lobby';
 import AuthModal from './components/auth/AuthModal'
@@ -36,7 +36,7 @@ function App() {
   const [currentGameId, setCurrentGameId] = useState<string | null>(null);
   // Socket.IO test connection
   useEffect(() => {
-    const socket = io(API_URL, {
+    const socket = io(getSocketUrl(), {
       withCredentials: true,
       transports: ['websocket'],
     });
