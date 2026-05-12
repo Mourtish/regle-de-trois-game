@@ -7,16 +7,29 @@ const app = express();
 const http = require('http');
 
 // Helper to allow common dev hosts plus optional FRONTEND_URL
-const allowedOrigins = [
+const allowedOrigins = new Set([
   'http://localhost:5173',
   'http://127.0.0.1:5173',
   process.env.FRONTEND_URL
-].filter(Boolean);
+].filter(Boolean));
+
+const isLocalDevOrigin = (origin) => {
+  try {
+    const url = new URL(origin);
+    return (
+      (url.protocol === 'http:' || url.protocol === 'https:') &&
+      (url.hostname === 'localhost' || url.hostname === '127.0.0.1')
+    );
+  } catch {
+    return false;
+  }
+};
 
 const isAllowedOrigin = (origin) => {
   if (!origin) return true; // allow same-origin/non-browser
   if (origin.includes('github.dev') || origin.includes('apn.github.dev')) return true;
-  return allowedOrigins.some((o) => origin.startsWith(o));
+  if (isLocalDevOrigin(origin)) return true;
+  return allowedOrigins.has(origin);
 };
 
 const server = http.createServer(app);
@@ -54,10 +67,7 @@ if (!process.env.JWT_SECRET) {
 
 // MongoDB connection
 let dbConnected = false;
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/regle-de-trois', {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-})
+mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/regle-de-trois')
 .then(() => {
   dbConnected = true;
   console.log('📦 Connected to MongoDB');
@@ -76,6 +86,15 @@ app.use('/api/auth', authRoutes);
 // Your existing routes
 app.get('/', (req, res) => {
   res.json({ 
+    message: 'Règle de Trois API is running!',
+    status: 'success',
+    database: dbConnected ? 'connected' : 'disconnected',
+    timestamp: new Date().toISOString()
+  });
+});
+
+app.get('/api/status', (req, res) => {
+  res.json({
     message: 'Règle de Trois API is running!',
     status: 'success',
     database: dbConnected ? 'connected' : 'disconnected',

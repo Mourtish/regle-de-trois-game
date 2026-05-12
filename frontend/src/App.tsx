@@ -9,9 +9,11 @@ import './App.css'
 // Define what data we expect from the backend
 interface ApiResponse {
   message: string;
-  status: string;
-  timestamp: string;
-  database: string;
+  status?: string;
+  timestamp?: string;
+  database?: string;
+  players_online?: number;
+  games_active?: number;
 }
 
 interface User {
@@ -100,7 +102,7 @@ function App() {
   // Function to fetch data from backend
   const fetchData = async () => {
     try {
-  const response = await fetch(API_URL + '/');
+      const response = await fetch('/api/status');
       const data = await response.json();
       setApiData(data);
       setLoading(false);
