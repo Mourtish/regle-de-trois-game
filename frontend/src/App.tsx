@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { io } from 'socket.io-client';
-import { getSocketUrl } from './utils/api';
+import { getSocketUrl, initializeCsrfToken } from './utils/api';
 import GameBoard from './components/game/GameBoard'
 import Lobby from './components/Lobby';
 import AuthModal from './components/auth/AuthModal'
@@ -63,40 +63,14 @@ function App() {
   // For showing AuthModal on the board
   const [showBoardAuth, setShowBoardAuth] = useState(false);
 
-  // Check if user is already logged in
+  // Initialize CSRF token and fetch data on mount
   useEffect(() => {
-    const token = localStorage.getItem('authToken');
-    const userData = localStorage.getItem('userData');
-    
-    if (token && userData) {
-      try {
-        const parsedUser = JSON.parse(userData);
-        // Ensure user has the expected shape
-        const normalizedUser: User = {
-          id: parsedUser.id,
-          username: parsedUser.username,
-          profile: parsedUser.profile || {
-            displayName: parsedUser.displayName || parsedUser.username,
-            avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + parsedUser.username,
-            preferredColor: '#4444ff'
-          },
-          gameStats: parsedUser.gameStats || {
-            gamesPlayed: parsedUser.gamesPlayed || 0,
-            gamesWon: parsedUser.gamesWon || 0,
-            gamesLost: 0,
-            winStreak: 0,
-            bestWinStreak: 0
-          }
-        };
-        setUser(normalizedUser);
-      } catch (error) {
-        console.error('Error parsing user data:', error);
-        localStorage.removeItem('authToken');
-        localStorage.removeItem('userData');
-      }
-    }
+    // Initialize CSRF token for security
+    initializeCsrfToken();
     
     fetchData();
+    // Note: With cookie-based auth, user session is maintained by HttpOnly cookies.
+    // We don't need to restore user state from localStorage.
   }, []);
 
   // Function to fetch data from backend
@@ -116,9 +90,16 @@ function App() {
     setUser(userData);
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('authToken');
-    localStorage.removeItem('userData');
+  const handleLogout = async () => {
+    try {
+      // Call logout endpoint to clear auth cookie
+      await fetch('/api/auth/logout', {
+        method: 'GET',
+        credentials: 'include'
+      });
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
     setUser(null);
     setShowGame(false);
   };

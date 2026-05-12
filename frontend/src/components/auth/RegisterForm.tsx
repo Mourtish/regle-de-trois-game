@@ -51,9 +51,8 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onRegister, onSwitchToLogin
       const data = await response.json();
 
       if (data.success) {
-        // Save token and user data to localStorage
-        localStorage.setItem('authToken', data.token);
-        localStorage.setItem('userData', JSON.stringify(data.user));
+        // Token is stored securely in HttpOnly cookie by backend
+        // No need to store token in localStorage
         onRegister(data.user);
       } else {
         if (data.errors) {

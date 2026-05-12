@@ -31,9 +31,8 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLogin, onSwitchToRegister, isLo
       const data = await response.json();
 
       if (data.success) {
-        // Save token and user data to localStorage
-        localStorage.setItem('authToken', data.token);
-        localStorage.setItem('userData', JSON.stringify(data.user));
+        // Token is stored securely in HttpOnly cookie by backend
+        // No need to store token in localStorage
         onLogin(data.user);
       } else {
         setError(data.message || 'Login failed');
